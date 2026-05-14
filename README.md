@@ -7,7 +7,6 @@ A Streamlit dashboard and prediction tool for exploring financial inclusion patt
 
 The project is ready to publish to GitHub as a standalone repository from the `Financial_Inclusion_Proje/` folder. The dataset, county GeoJSON, trained model, metrics, app code, and dependency files are all included in the project folder.
 
-Important GitHub note: initialize Git inside this folder only. The current machine has a parent Git context above this project, so running Git commands from `C:\Users\ADMIN` may accidentally include unrelated user files.
 
 ## Features
 
