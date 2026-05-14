@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+
+.venv/
+.env
+.streamlit/secrets.toml
+
+catboost_info/
+streamlit.out.log
+streamlit.err.log
+
+# Duplicate root-level artifacts; canonical copies live in data/ and models/.
+/clean_data.csv
+/model.pkl
+
+# Notebook/runtime output
+.ipynb_checkpoints/
