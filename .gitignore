@@ -2,12 +2,19 @@ __pycache__/
 *.py[cod]
 *.log
 .DS_Store
+.pytest_cache/
+.test-tmp/
+test_tmp/
+pytest-cache-files-*/
+.coverage
+htmlcov/
 
 .venv/
 .env
 .streamlit/secrets.toml
 
 catboost_info/
+logs/
 streamlit.out.log
 streamlit.err.log
 

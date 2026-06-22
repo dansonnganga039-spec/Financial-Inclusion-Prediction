@@ -1,0 +1,18 @@
+{
+  "generated_at_utc": "2026-06-22T15:07:57.182384+00:00",
+  "source_data": "FinAccess 2021 processed artifact (existing saved model)",
+  "model_file": "model.pkl",
+  "model_sha256": "58ba1f7101729ac89928c90e676830d80be7e61378a2ca381790d63a02500487",
+  "processed_data_file": "clean_data.csv",
+  "processed_data_sha256": "9aba1fd5f807e0890f306ffc89e744455d93bd2435972f2c8a9e2eaa4dffbd3f",
+  "python_version": "3.14.4",
+  "packages": {
+    "catboost": "1.2.10",
+    "numpy": "2.4.6",
+    "pandas": "3.0.2",
+    "plotly": "6.7.0",
+    "scikit-learn": "1.8.0",
+    "shap": "0.51.0",
+    "streamlit": "1.57.0"
+  }
+}

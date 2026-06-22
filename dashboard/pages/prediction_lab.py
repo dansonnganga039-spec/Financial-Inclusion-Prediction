@@ -19,7 +19,7 @@ from src.visualization.plotting import DIVERGING_SCALE, apply_chart_style, confi
 
 def render_prediction_lab(df: pd.DataFrame, model, metrics: dict) -> None:
     st.subheader("Prediction Lab")
-    st.caption("Estimate financial inclusion likelihood and translate the score into action.")
+    st.caption("Estimate model confidence for financial inclusion and translate the score into action.")
 
     feature_columns = model_feature_columns(df, metrics)
     editable_fields = editable_feature_columns(df, feature_columns)
@@ -62,7 +62,7 @@ def render_prediction_lab(df: pd.DataFrame, model, metrics: dict) -> None:
                     default_index = options.index(current) if current in options else 0
                     sample[field] = st.selectbox(field_label(field), options, index=default_index)
 
-        submitted = st.form_submit_button("Predict inclusion probability", type="primary")
+        submitted = st.form_submit_button("Estimate model confidence", type="primary")
 
     if not submitted:
         return
@@ -86,13 +86,13 @@ def _render_prediction_result(
     delta = probability - baseline
 
     result_col, baseline_col, band_col = st.columns(3)
-    result_col.metric("Prediction", inclusion_label(prediction), f"{probability:.1%} probability")
+    result_col.metric("Prediction", inclusion_label(prediction), f"{probability:.1%} model confidence")
     baseline_col.metric(
         "Dataset average",
         f"{baseline:.1%}" if baseline else "N/A",
         f"{delta:+.1%} vs average" if baseline else None,
     )
-    band_col.metric("Confidence band", band)
+    band_col.metric("Confidence level", band)
 
     left, right = st.columns([1, 2])
     with left:
@@ -118,15 +118,15 @@ def _render_prediction_result(
 
 def _render_contribution_panel(sample: pd.Series, row: pd.DataFrame, model) -> None:
     contributions = shap_contributions(model, row)
-    source = "SHAP contribution"
+    source = "Prediction driver"
     if contributions.empty:
         contributions = fallback_contributions(model, sample)
-        source = "Feature-importance driver"
+        source = "Model driver"
 
     if contributions.empty:
         return
 
-    st.subheader("Feature Contribution Panel")
+    st.subheader("Key Driver Panel")
     fig = px.bar(
         contributions.sort_values("absolute_contribution"),
         x="contribution",
@@ -134,7 +134,7 @@ def _render_contribution_panel(sample: pd.Series, row: pd.DataFrame, model) -> N
         orientation="h",
         color="contribution",
         color_continuous_scale=DIVERGING_SCALE,
-        labels={"feature": "Feature", "contribution": source},
+        labels={"feature": "Driver", "contribution": source},
     )
     max_abs = contributions["contribution"].abs().max()
     if max_abs:
@@ -143,5 +143,5 @@ def _render_contribution_panel(sample: pd.Series, row: pd.DataFrame, model) -> N
     st.plotly_chart(apply_chart_style(fig), use_container_width=True)
 
     display = contributions[["feature", "contribution"]].copy()
-    display["selected_value"] = display["feature"].map(lambda feature: sample.get(feature, ""))
+    display["selected_profile_value"] = display["feature"].map(lambda feature: sample.get(feature, ""))
     st.dataframe(display, width="stretch", hide_index=True)

@@ -118,6 +118,21 @@ Documentation added or updated:
 
 - `README.md`
 - `PROJECT_SUMMARY.md`
+- `MODEL_CARD.md`
+
+## Repository Hardening
+
+The repository now includes:
+
+- SHA-256 verification before loading the pickle model.
+- Model/data provenance with package and Python versions.
+- Dataset, metrics, model, and GeoJSON validation.
+- User-facing errors for missing or malformed artifacts.
+- A configurable artifact rebuild command using `--source-data` or `FINACCESS_SOURCE_DATA`.
+- Consistent empty-selection behavior for County and Respondent Sex filters.
+- Unit tests and a full repository artifact smoke test.
+- GitHub Actions compilation and test checks.
+- A model card describing intended use, limitations, privacy, and security considerations.
 
 ## GitHub Readiness
 

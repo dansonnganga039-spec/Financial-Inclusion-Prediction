@@ -1,111 +1,55 @@
-<<<<<<< HEAD
 # Financial Inclusion Predictor
 
-A Streamlit dashboard and prediction tool for exploring financial inclusion patterns in Kenya using FinAccess 2021 data. The app combines summary metrics, demographic visuals, county-level geographic mapping, global model explainability, and a respondent-level prediction lab powered by a saved CatBoost model.
+A Streamlit analytical dashboard for exploring financial inclusion patterns in Kenya using FinAccess 2021 data. The app combines reusable preprocessing artifacts, a saved CatBoost model, visual analytics, global explainability, and respondent-level prediction support.
 
-## Project Status
+## What The System Does
 
-The project is ready to publish to GitHub as a standalone repository from the `Financial_Inclusion_Proje/` folder. The dataset, county GeoJSON, trained model, metrics, app code, and dependency files are all included in the project folder.
+- Presents high-level financial inclusion metrics for filtered records.
+- Explores demographic and county-level inclusion patterns.
+- Scores a respondent profile with the saved model.
+- Shows model confidence, confidence level, key drivers, and action-oriented recommendations.
+- Provides global feature-importance views and prediction-level explanation fallbacks.
 
-Important GitHub note: initialize Git inside this folder only. The current machine has a parent Git context above this project, so running Git commands from `C:\Users\ADMIN` may accidentally include unrelated user files.
+## System Workflow
 
-## Features
-
-- Interactive Streamlit dashboard with sidebar navigation and filters.
-- Overview metrics for filtered records, inclusion counts, exclusion counts, ROC-AUC, target rate, and model summary.
-- Demographic charts for inclusion split, sex-based inclusion rate, and age distribution.
-- Kenya county choropleth map showing county-level inclusion rates.
-- Top county ranking chart and supporting county summary table.
-- Global model explainability through feature-importance charts.
-- Prediction Lab for respondent-level inclusion probability scoring.
-- Confidence gauge, probability band, contributing factors, recommendations, and feature contribution panel.
-- High-contrast visual styling for metric cards, dropdowns, chart labels, chart axes, map colors, legends, and colorbars.
-
-## Dashboard Pages
-
-### Overview
-
-Shows high-level metrics for the filtered dataset and saved model:
-
-- Records
-- Included respondents
-- Excluded respondents
-- Model ROC-AUC
-- Rows in training data
-- Champion model
-- Target rate
-
-### Who and Where
-
-Explores who is affected and where inclusion differs:
-
-- Financial inclusion split
-- Inclusion by respondent sex
-- County inclusion heatmap
-- Top counties by inclusion rate
-- Age distribution by inclusion status
-
-### Explainability
-
-Shows the strongest model drivers:
-
-- Top encoded feature importances
-- Grouped source-column importance
-- Notes on local explanation readiness
-
-### Prediction Lab
-
-Lets a user edit a respondent profile and generate an inclusion probability:
-
-- Profile, Access, and Trust tabs
-- Prediction result
-- Dataset-average comparison
-- Confidence band
-- Gauge visualization
-- Recommended decision-support actions
-- Feature contribution panel
-
-### Data Preview
-
-Shows the first 100 rows from the filtered dataset.
-
-## Model Summary
-
-The saved model is a `CatBoostClassifier`.
-
-Current saved metrics:
-
-- Rows: `22,024`
-- Columns: `48`
-- Target rate: `79.0%`
-- Accuracy: `92.6%`
-- ROC-AUC: `0.983`
-- Recall for financially excluded respondents: `97.5%`
-- Recall for financially included respondents: `91.3%`
-
-These values are stored in `models/model_metrics.json`.
+```text
+FinAccess raw dataset
+  -> preprocessing pipeline
+  -> target engineering
+  -> feature preparation
+  -> model training
+  -> evaluation
+  -> saved artifacts
+  -> dashboard inference
+  -> explainability system
+  -> visual analytics
+  -> user interaction
+```
 
 ## Project Structure
 
 ```text
 Financial_Inclusion_Proje/
-  app.py                         Streamlit app entry point and page router
+  app.py                         Streamlit entry point and page router
   requirements.txt               Python dependencies
+  requirements-dev.txt           Test/development dependencies
   runtime.txt                    Python runtime hint for deployment
+  MODEL_CARD.md                  Intended use, limitations, and safeguards
+  PROJECT_SUMMARY.md             Project and dashboard change summary
   run_dashboard.bat              Windows helper for local launch
   .gitignore                     Git exclusions
   .streamlit/
-    config.toml                  Streamlit server/theme config
+    config.toml                  Streamlit server and theme config
   dashboard/
     filters.py                   Sidebar filters
-    navigation.py                Sidebar navigation
+    navigation.py                Sidebar page selection
     style.py                     Dashboard CSS and readability overrides
     pages/
       overview.py                Overview page
       visuals.py                 Who and Where page
       explainability.py          Explainability page
       prediction_lab.py          Prediction Lab page
-      data_preview.py            Data Preview page
+      data_preview.py            Filtered data preview page
   data/
     geo/
       kenya_counties.geojson     County boundary file for the map
@@ -116,7 +60,9 @@ Financial_Inclusion_Proje/
       FINACCESS_RENAME_TABLE.csv Column rename metadata
   models/
     model.pkl                    Saved trained model pipeline
+    model.sha256                 Model integrity checksum
     model_metrics.json           Saved model metrics and feature list
+    model_provenance.json        Data/model hashes and environment metadata
   notebooks/
     Financial Inclusion Predictor.ipynb
   src/
@@ -124,7 +70,7 @@ Financial_Inclusion_Proje/
     data.py                      Cached data/model/metrics loaders
     utils.py                     Shared helper functions
     preprocessing/
-      build_artifacts.py         Rebuild workflow for data/model artifacts
+      build_artifacts.py         Data/model artifact rebuild workflow
     modeling/
       prediction.py              Prediction Lab helper logic
     explainability/
@@ -133,19 +79,47 @@ Financial_Inclusion_Proje/
     visualization/
       charts.py                  Dashboard charts and county map
       plotting.py                Shared Plotly styling and gauge
+  tests/                         Unit and repository artifact smoke tests
+  .github/workflows/ci.yml       GitHub Actions compile/test workflow
 ```
+
+## Architecture Notes
+
+`app.py` is intentionally thin. It configures Streamlit, loads shared artifacts, applies filters, and routes to page renderers. Heavy analytical work lives under `src/`, while dashboard-specific layout lives under `dashboard/`.
+
+Reusable layers:
+
+- `src.data`: cached artifact loading.
+- `src.preprocessing`: artifact rebuild workflow.
+- `src.modeling`: prediction helper logic.
+- `src.explainability`: global and local explanation logic.
+- `src.visualization`: reusable chart and gauge builders.
+
+Tightly coupled layers:
+
+- `dashboard/pages/*`: Streamlit presentation and page layout.
+- `src.visualization.charts`: chart assumptions tied to the processed dataset columns.
+- `src.preprocessing.build_artifacts`: depends on local raw data and metadata files.
+
+Operationally fragile layers:
+
+- Model artifact loading from `models/model.pkl`.
+- SHAP availability in the deployment environment.
+- County name matching between processed data and `data/geo/kenya_counties.geojson`.
 
 ## Requirements
 
-- Python 3.12
+- Python 3.14
 - Streamlit
 - Pandas
 - Plotly
 - CatBoost
 - Scikit-learn
 - SHAP
+- OpenPyXL, used only when rebuilding artifacts from the Excel source data
 
-Install dependencies from `requirements.txt`.
+Install the exact runtime dependency set from `requirements.txt`. Contributors can install
+`requirements-dev.txt` to include the test tooling.
 
 ## Run Locally
 
@@ -176,15 +150,51 @@ If you already have the existing virtual environment from the parent workspace, 
 Only rebuild artifacts if the source data, selected columns, rename mapping, or model workflow changes.
 
 ```powershell
+python -m src.preprocessing.build_artifacts --source-data "C:\path\to\FinAccess.xlsx"
+```
+
+Alternatively, set `FINACCESS_SOURCE_DATA` before running the module:
+
+```powershell
+$env:FINACCESS_SOURCE_DATA="C:\path\to\FinAccess.xlsx"
 python -m src.preprocessing.build_artifacts
 ```
+
+If neither option is supplied, the builder checks the historical parent-workspace location. A successful rebuild regenerates the model, metrics, checksum, and provenance files.
 
 Canonical artifacts live here:
 
 - `data/processed/clean_data.csv`
 - `data/geo/kenya_counties.geojson`
 - `models/model.pkl`
+- `models/model.sha256`
 - `models/model_metrics.json`
+- `models/model_provenance.json`
+
+## Tests
+
+```powershell
+pip install -r requirements-dev.txt
+pytest
+```
+
+The test suite covers target creation, filter semantics, data/metrics validation, model integrity verification, and loading the repository artifacts. GitHub Actions runs compilation and tests on pushes to `main` and on pull requests.
+
+## Model Snapshot
+
+The saved champion model is a `CatBoostClassifier`.
+
+Current saved metrics:
+
+- Rows: `22,024`
+- Columns: `48`
+- Target rate: `79.0%`
+- Accuracy: `92.6%`
+- ROC-AUC: `0.983`
+- Recall for financially excluded respondents: `97.5%`
+- Recall for financially included respondents: `91.3%`
+
+These values are stored in `models/model_metrics.json`.
 
 ## Deployment Notes
 
@@ -193,12 +203,21 @@ For Streamlit Community Cloud or similar hosting:
 - Main file: `app.py`
 - Python runtime hint: `runtime.txt`
 - Dependencies: `requirements.txt`
-- Required data/model artifacts are already inside `data/` and `models/`.
+- Required data/model artifacts are included under `data/` and `models/`.
+- Streamlit server and theme settings are in `.streamlit/config.toml`.
 - Do not deploy duplicate root-level `clean_data.csv` or `model.pkl`; canonical copies live under `data/` and `models/`.
+
+The saved `models/model.pkl` file is included because the dashboard needs it at runtime. If future deployment policy moves model artifacts to external storage, add `models/*.pkl` to `.gitignore` and document the retrieval step.
+
+## Artifact Integrity And Security
+
+Before unpickling the saved model, the application verifies it against `models/model.sha256`. Rebuilds also record model/data hashes and environment versions in `models/model_provenance.json`.
+
+Checksum verification detects corruption and mismatched artifacts, but it does not make pickle safe when a model and checksum both come from an untrusted source. Only run artifacts from a trusted, reviewed commit. See `MODEL_CARD.md` for intended use, limitations, and evaluation gaps.
 
 ## GitHub Setup
 
-Run these commands from the project folder:
+Important: initialize Git inside this folder only. The current machine has a parent Git context above this project, so running Git commands from `C:\Users\ADMIN` may accidentally include unrelated user files.
 
 ```powershell
 cd "C:\Users\ADMIN\Documents\New project\Financial_Inclusion_Proje"
@@ -212,200 +231,20 @@ git push -u origin main
 
 Before pushing, confirm `git status --short` only shows files inside `Financial_Inclusion_Proje/`.
 
+## Explainability Guidance
+
+The explainability views are designed for decision support, not causal claims. Feature importance and contribution panels show the strongest model signals behind a prediction. They should be read as directional model evidence, not as proof that a factor caused inclusion or exclusion.
+
+For non-technical users, prefer these terms:
+
+- "Model confidence" instead of "probability threshold".
+- "Confidence level" instead of "band".
+- "Key drivers" instead of "raw feature importance".
+- "Selected profile value" instead of "input feature value".
+
 ## Notes
 
 - `__pycache__/`, virtual environments, logs, Streamlit secrets, and duplicate root artifacts are ignored by `.gitignore`.
-- The dashboard uses light-theme, high-contrast styling for readability.
+- The dashboard uses a light, high-contrast theme for readability.
 - The county map depends on matching county names in the processed data to keys in the GeoJSON file.
-=======
-
-
-# 📊 Predicting Financial Inclusion Using Machine Learning
-
-## 📌 Project Overview
-
-This project applies machine learning techniques to predict financial inclusion using socioeconomic data. Financial inclusion refers to the ability of individuals to access and use formal financial services such as banking, credit, and insurance.
-
-Despite the growth of digital financial systems, many individuals remain financially excluded. In this study, predictive models are used to identify patterns and factors associated with financial inclusion, with the goal of supporting data-driven decision-making.
-
----
-
-## 🎯 Objectives
-
-* Perform data preprocessing and cleaning
-* Conduct exploratory data analysis (EDA)
-* Build and evaluate multiple classification models
-* Compare model performance using appropriate metrics
-* Identify key factors influencing financial inclusion
-
----
-
-## 📂 Dataset
-
-The dataset contains demographic and socioeconomic information, including:
-
-* Age
-* Income level
-* Education level
-* Employment status
-* Geographic location
-* Financial service usage indicators
-
-**Target Variable:**
-`financially_included` (1 = Yes, 0 = No)
-
----
-
-## ⚙️ Methodology
-
-### 🔹 Data Preprocessing
-
-* Handling missing values (median/mode imputation)
-* Encoding categorical variables (One-Hot Encoding)
-* Feature scaling (StandardScaler)
-* Feature selection (Variance Threshold)
-
----
-
-### 🔹 Models Implemented
-
-* Logistic Regression
-* Decision Tree
-* Random Forest
-* XGBoost
-* CatBoost
-* TabM (Deep Learning Model using PyTorch)
-
----
-
-### 🔹 Evaluation Metrics
-
-* Accuracy
-* Precision
-* Recall
-* F1-score
-* ROC-AUC
-* Confusion Matrix
-
-Special attention was given to **class imbalance**, using:
-
-* Class weighting
-* Threshold tuning
-
----
-
-## 📊 Results Summary
-
-| Model                | F1 Score    | ROC-AUC    |
-| -------------------- | ----------- | ---------- |
-| Logistic Regression  | ~0.986      | ~0.993     |
-| Random Forest        | ~0.986      | ~0.993     |
-| XGBoost              | ~0.986      | ~0.993     |
-| CatBoost             | **~0.986+** | **~0.994** |
-| TabM (Deep Learning) | ~0.957      | ~0.982     |
-
-* **CatBoost achieved the best overall performance**
-* TabM improved significantly after tuning (recall ↑ from 0.84 → 0.95)
-* Logistic Regression performed competitively, indicating structured relationships in the data
-
----
-
-## 📈 Visualizations
-
-The project includes:
-
-* Confusion Matrix
-* ROC Curve
-* Precision-Recall Curve
-* Feature Importance Plots
-* Correlation Heatmap
-
----
-
-## 🧠 Key Insights
-
-* Financial inclusion is strongly influenced by:
-
-  * Income level
-  * Education
-  * Geographic location
-
-* Tree-based models performed best for this tabular dataset
-
-* Deep learning required additional tuning to compete
-
-* Handling class imbalance significantly improved minority class detection
-
----
-
-## 🛠️ Tools & Technologies
-
-* **Language:** Python
-* **Libraries:** Pandas, NumPy, Scikit-learn, Matplotlib, Seaborn
-* **ML Models:** XGBoost, CatBoost
-* **Deep Learning:** PyTorch
-* **Environment:** Jupyter Notebook
-
----
-
-## 🚀 How to Run the Project
-
-```bash
-# Clone repository
-git clone https://github.com/your-username/financial-inclusion-project.git
-
-# Navigate into project
-cd financial-inclusion-project
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run notebook
-jupyter notebook
-```
-
----
-
-## 📁 Project Structure
-
-```text
-financial-inclusion-project/
-│
-├── data/                  # Dataset files
-├── notebooks/            # Jupyter notebooks
-├── models/               # Saved models (optional)
-├── images/               # Plots and figures
-├── README.md             # Project documentation
-└── requirements.txt      # Dependencies
-```
-
----
-
-## 📌 Future Work
-
-* Apply advanced deep learning models for tabular data
-* Use larger and more diverse datasets
-* Develop real-time prediction systems
-* Evaluate fairness and bias in model predictions
-
----
-
-## 📜 License
-
-This project is for academic purposes.
-
----
-
-## 👤 Author
-
-**Danson Ng'ang'a Waweru**
-
-Student.ID: [01/0126/9381]
-
-[Emobilis]
-
----
-
-
-
->>>>>>> cac85eeac7b4ec3a3ff934795d3ff1690eb9ccaf
+- Missing, malformed, or checksum-mismatched artifacts are reported with user-facing dashboard errors.

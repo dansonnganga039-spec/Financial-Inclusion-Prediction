@@ -1,3 +1,5 @@
+import argparse
+import os
 from pathlib import Path
 import pickle
 
@@ -11,6 +13,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from src.artifacts import build_provenance, write_checksum, write_provenance
+
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 WORKSPACE_DIR = PROJECT_DIR.parent
@@ -19,7 +23,7 @@ RAW_DIR = PROJECT_DIR / "data" / "raw"
 PROCESSED_DIR = PROJECT_DIR / "data" / "processed"
 MODELS_DIR = PROJECT_DIR / "models"
 
-DATA_FILE = WORKSPACE_DIR / "Updated Anonymized Weighted FinAccess 2021_clean.xlsx"
+DEFAULT_DATA_FILE = WORKSPACE_DIR / "Updated Anonymized Weighted FinAccess 2021_clean.xlsx"
 KEEP_FILE = RAW_DIR / "FINACCESS_KEEP_COLUMNS.csv"
 RENAME_FILE = RAW_DIR / "FINACCESS_RENAME_TABLE.csv"
 
@@ -28,7 +32,17 @@ TARGET_COL = "financially_included"
 TARGET_SOURCE_COLS = ["bank_usage", "mobile_money_usage", "insurance_usage"]
 
 
-def load_selected_data() -> pd.DataFrame:
+def resolve_source_data(source_data: str | Path | None = None) -> Path:
+    configured = source_data or os.environ.get("FINACCESS_SOURCE_DATA") or DEFAULT_DATA_FILE
+    path = Path(configured).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Source workbook not found: {path}. Pass --source-data or set FINACCESS_SOURCE_DATA."
+        )
+    return path
+
+
+def load_selected_data(data_file: Path) -> pd.DataFrame:
     keep_columns = pd.read_csv(KEEP_FILE, header=None)[0].dropna().tolist()
     rename_df = pd.read_csv(RENAME_FILE)
     coded_columns = [
@@ -73,7 +87,7 @@ def load_selected_data() -> pd.DataFrame:
         .to_dict()
     )
 
-    df = pd.read_excel(DATA_FILE, sheet_name="Dataset", usecols=keep_columns, engine="openpyxl")
+    df = pd.read_excel(data_file, sheet_name="Dataset", usecols=keep_columns, engine="openpyxl")
     df = df.rename(columns=rename_map)
     df.columns = df.columns.str.strip()
     return df
@@ -169,32 +183,61 @@ def build_model(df: pd.DataFrame) -> tuple[Pipeline, dict]:
     return model, metrics
 
 
-def main() -> None:
+def main(source_data: str | Path | None = None) -> None:
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
     clean_data_path = PROCESSED_DIR / "clean_data.csv"
     root_clean_data_path = PROJECT_DIR / "clean_data.csv"
-    if clean_data_path.exists():
+    configured_source = source_data or os.environ.get("FINACCESS_SOURCE_DATA")
+    if configured_source:
+        source_path = resolve_source_data(configured_source)
+        clean_df = create_target(load_selected_data(source_path))
+        clean_df.to_csv(clean_data_path, index=False)
+        source_label = str(source_path)
+    elif clean_data_path.exists():
         clean_df = pd.read_csv(clean_data_path)
+        source_label = str(clean_data_path)
     elif root_clean_data_path.exists():
         clean_df = pd.read_csv(root_clean_data_path)
         clean_df.to_csv(clean_data_path, index=False)
+        source_label = str(root_clean_data_path)
     else:
-        clean_df = create_target(load_selected_data())
+        source_path = resolve_source_data(source_data)
+        clean_df = create_target(load_selected_data(source_path))
         clean_df.to_csv(clean_data_path, index=False)
+        source_label = str(source_path)
 
     model, metrics = build_model(clean_df)
     model_path = MODELS_DIR / "model.pkl"
     with model_path.open("wb") as f:
         pickle.dump(model, f)
 
+    checksum_path = MODELS_DIR / "model.sha256"
+    model_checksum = write_checksum(model_path, checksum_path)
+
+    provenance_path = MODELS_DIR / "model_provenance.json"
+    provenance = build_provenance(
+        model_path=model_path,
+        data_path=clean_data_path,
+        source_data=source_label,
+        model_checksum=model_checksum,
+    )
+    write_provenance(provenance_path, provenance)
+
     metrics_path = MODELS_DIR / "model_metrics.json"
+    metrics["artifact"] = {
+        "model_sha256": model_checksum,
+        "generated_at_utc": provenance["generated_at_utc"],
+        "processed_data_sha256": provenance["processed_data_sha256"],
+    }
     pd.Series(metrics).to_json(metrics_path, indent=2)
 
     print(f"Saved clean data: {clean_data_path}")
     print(f"Saved model: {model_path}")
+    print(f"Saved checksum: {checksum_path}")
+    print(f"Saved provenance: {provenance_path}")
     print(f"Rows: {metrics['rows']:,}")
     print(f"Target rate: {metrics['target_rate']:.3f}")
     print(f"Accuracy: {metrics['accuracy']:.3f}")
@@ -202,4 +245,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Build dashboard data and model artifacts.")
+    parser.add_argument(
+        "--source-data",
+        help="Path to the FinAccess Excel workbook. Can also use FINACCESS_SOURCE_DATA.",
+    )
+    args = parser.parse_args()
+    main(source_data=args.source_data)

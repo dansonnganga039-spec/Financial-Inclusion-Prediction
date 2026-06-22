@@ -11,7 +11,9 @@ MODELS_DIR = PROJECT_DIR / "models"
 DATA_PATH = PROCESSED_DATA_DIR / "clean_data.csv"
 COUNTY_GEOJSON_PATH = GEO_DATA_DIR / "kenya_counties.geojson"
 MODEL_PATH = MODELS_DIR / "model.pkl"
+MODEL_CHECKSUM_PATH = MODELS_DIR / "model.sha256"
 METRICS_PATH = MODELS_DIR / "model_metrics.json"
+PROVENANCE_PATH = MODELS_DIR / "model_provenance.json"
 
 TARGET_COL = "financially_included"
 CHART_COLORS = {"Included": "#2563eb", "Excluded": "#d97706"}
